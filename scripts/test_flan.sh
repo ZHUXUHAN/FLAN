@@ -1,0 +1,32 @@
+MODEL_NAME='FLAN_Model/'
+CHCEKPOINTS_PATH='your_model_path/'
+DATASETS='VG'
+NUM_GPUS=1
+CUDA_VISIBLE_DEVICES=0
+PREDICTOR='FLAN2Predictor'
+
+if [ $DATASETS = "VG" ]; then
+    USE_BIAS=True
+    CONFIG_FILE="configs/e2e_relation_X_101_32_8_FPN_1x.yaml"
+    PRETRAINED_DETECTOR_CKPT='pretrained_faster_rcnn/model_final.pth'
+    cachepath='./cache/VG_stanford_filtered_with_attribute_train_statistics.cache'
+fi
+
+python -m torch.distributed.launch --master_port 10012 --nproc_per_node=${NUM_GPUS} tools/relation_test_net.py \
+--config-file ${CONFIG_FILE} \
+MODEL.ROI_RELATION_HEAD.USE_GT_BOX True \
+MODEL.ROI_RELATION_HEAD.USE_GT_OBJECT_LABEL True \
+MODEL.ROI_RELATION_HEAD.PREDICTOR ${PREDICTOR} \
+TEST.IMS_PER_BATCH ${NUM_GPUS} \
+SOLVER.PRE_VAL False \
+SOLVER.IMS_PER_BATCH 1 \
+SOLVER.SCHEDULE.TYPE WarmupMultiStepLR \
+GLOVE_DIR ./datasets/vg/glove \
+MODEL.PRETRAINED_DETECTOR_CKPT ${PRETRAINED_DETECTOR_CKPT} \
+OUTPUT_DIR ${CHCEKPOINTS_PATH}/${MODEL_NAME}/ \
+TEST.IMS_PER_BATCH 4 \
+MODEL.ROI_RELATION_HEAD.PART_TYPE 'half' \
+MODEL.ROI_RELATION_HEAD.PART_HALF_TYPE 'TD' \
+MODEL.ROI_RELATION_HEAD.PART_CONTEXT_TYPE 'Motifs' \
+MODEL.ROI_RELATION_HEAD.ALPHA 0.95 \
+DATASETS.TO_TEST test
